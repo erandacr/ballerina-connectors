@@ -92,7 +92,7 @@
         <dependency>
             <groupId>org.apache.activemq</groupId>
             <artifactId>activemq-all</artifactId>
-            <version>${activemq.broker.vesion}</version>
+            <version>${activemq.broker.version}</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
@@ -109,7 +109,7 @@
                             ${basedir}/../distribution/target/ballerina-${ballerina.runtime.version}.zip
                         </server.zip>
                         <project.build.directory>${project.build.directory}</project.build.directory>
-                        <activemq.all.jar>activemq-all-${activemq.broker.vesion}.jar</activemq.all.jar>
+                        <activemq.all.jar>activemq-all-${activemq.broker.version}.jar</activemq.all.jar>
                         <java.util.logging.config.file>${project.build.testOutputDirectory}/logging.properties</java.util.logging.config.file>
                     </systemPropertyVariables>
                     <suiteXmlFiles>
@@ -133,7 +133,7 @@
                                 <artifactItem>
                                     <groupId>org.apache.activemq</groupId>
                                     <artifactId>activemq-all</artifactId>
-                                    <version>${activemq.broker.vesion}</version>
+                                    <version>${activemq.broker.version}</version>
                                     <outputDirectory>${basedir}/target/</outputDirectory>
                                 </artifactItem>
                                 <artifactItem>
@@ -144,17 +144,6 @@
                                 </artifactItem>
                             </artifactItems>
                         </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-            <!-- prevent jar creation -->
-            <plugin>
-                <artifactId>maven-jar-plugin</artifactId>
-                <version>2.5.2</version>
-                <executions>
-                    <execution>
-                        <id>default-jar</id>
-                        <phase>none</phase>
                     </execution>
                 </executions>
             </plugin>
