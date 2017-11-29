@@ -29,10 +29,12 @@
     <groupId>org.ballerinalang</groupId>
     <artifactId>ballerina-connectors</artifactId>
     <version>1.0-SNAPSHOT</version>
+
     <modules>
         <module>modules/distribution</module>
         <module>modules/test-integration</module>
     </modules>
+
     <packaging>pom</packaging>
 
     <name>ballerina-connectors</name>
@@ -41,7 +43,7 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <ballerina.runtime.version>0.95.1</ballerina.runtime.version>
-        <jms.connector.version>0.95.0</jms.connector.version>
+        <jms.connector.version>0.95.1-SNAPSHOT</jms.connector.version>
         <activemq.broker.version>5.14.3</activemq.broker.version>
         <commons-net.version>3.6</commons-net.version>
     </properties>
@@ -75,12 +77,6 @@
         <dependencies>
             <dependency>
                 <groupId>org.ballerinalang</groupId>
-                <artifactId>ballerina-jms</artifactId>
-                <version>${jms.connector.version}</version>
-                <type>zip</type>
-            </dependency>
-            <dependency>
-                <groupId>org.ballerinalang</groupId>
                 <artifactId>ballerina-builtin</artifactId>
                 <version>${ballerina.runtime.version}</version>
             </dependency>
@@ -88,6 +84,12 @@
                 <groupId>org.ballerinalang</groupId>
                 <artifactId>ballerina-launcher</artifactId>
                 <version>${ballerina.runtime.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.ballerinalang</groupId>
+                <artifactId>ballerina-jms</artifactId>
+                <version>${jms.connector.version}</version>
+                <type>zip</type>
             </dependency>
         </dependencies>
     </dependencyManagement>

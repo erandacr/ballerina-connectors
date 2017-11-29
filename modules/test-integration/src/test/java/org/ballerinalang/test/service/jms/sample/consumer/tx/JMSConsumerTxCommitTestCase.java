@@ -107,11 +107,11 @@ public class JMSConsumerTxCommitTestCase extends IntegrationTestCase {
         ballerinaServer.startServer();
 
         // wait until http backend invoked and responded
-        Thread.sleep(1000);
+        Thread.sleep(5000);
 
         // check if the original queue is empty and dead letter queue is empty
         Assert.assertTrue(broker.checkQueueSize(queueName) && broker.checkQueueSize("ActiveMQ.DLQ"),
-                "Queue is not empty message is not committed.");
+                "Queue is not empty. Message is not committed.");
     }
 
     /**
