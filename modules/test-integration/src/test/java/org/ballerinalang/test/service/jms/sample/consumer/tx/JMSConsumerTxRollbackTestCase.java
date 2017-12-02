@@ -107,7 +107,7 @@ public class JMSConsumerTxRollbackTestCase extends IntegrationTestCase {
         ballerinaServer.startServer();
 
         // wait until http backend invoked and rollbacked (few times until it moves to the dlc)
-        Thread.sleep(1000);
+        Thread.sleep(2000);
 
         // check if the message is not there in the initial queue and its there in the dead letter queue
         Assert.assertTrue(broker.checkQueueSize(queueName) && !broker.checkQueueSize("ActiveMQ.DLQ"),
