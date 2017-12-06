@@ -16,30 +16,34 @@
 *  under the License.
 */
 
-package org.ballerinalang.test.service.jms.sample.producer.tx;
+package org.ballerinalang.test.connector.jms.sample.server.clientack;
 
 import org.apache.activemq.broker.BrokerService;
 import org.ballerinalang.test.IntegrationTestCase;
+import org.ballerinalang.test.connector.jms.sample.JMSServerInstance;
 import org.ballerinalang.test.context.Constant;
-import org.ballerinalang.test.context.LogLeecher;
 import org.ballerinalang.test.context.ServerInstance;
-import org.ballerinalang.test.service.jms.sample.JMSServerInstance;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 import java.io.File;
 
+import static org.ballerinalang.test.connector.jms.sample.JMSTestUtils.publishMessagesToQueue;
+
 /**
- * Testing the JMS Tx publisher
+ * Testing the JMS consumer.
  */
-public class JMSPublisherTxTestCase extends IntegrationTestCase {
-    private static final Logger log = LoggerFactory.getLogger(JMSPublisherTxTestCase.class);
-    ServerInstance ballerinaServer =  null;
-    private BrokerService broker;
+public class JMSConsumerClientAckCommitTestCase extends IntegrationTestCase {
+    private static final Logger log = LoggerFactory.getLogger(JMSConsumerClientAckCommitTestCase.class);
+    ServerInstance ballerinaServer;
+    private BrokerService broker = null;
     private String serverZipPath;
+
+    private String queueName = "MyQueueAck";
 
     /**
      * Setup an embedded activemq broker and prepare the ballerina distribution to run jms samples.
@@ -48,6 +52,7 @@ public class JMSPublisherTxTestCase extends IntegrationTestCase {
      */
     @BeforeClass
     private void setup() throws Exception {
+
         broker = new BrokerService();
         broker.setPersistent(false);
         broker.addConnector("tcp://localhost:61618");
@@ -71,16 +76,21 @@ public class JMSPublisherTxTestCase extends IntegrationTestCase {
         }
     }
 
-    @Test(description = "Test fot JMS Transacted publisher",
-          enabled = true)
+    @Test(description = "Test JMS receiver client ack, success operation")
     public void testJMSSendReceive() throws Exception {
-        log.info("JMS tx test start..");
+        log.info("JMS test start..");
+
+        publishMessagesToQueue(queueName);
+
+        if (broker.checkQueueSize(queueName)) {
+            Assert.fail("Unable to push message to the testing queue, failed in test preparation.");
+        }
 
         //Adding temporary echo service so the server start can be monitored using that. (since this is a jms service
         //there won't be any http port openings, hence current logic cannot identify whether server is started or not)
         String relativePath = new File(
                 "src" + File.separator + "test" + File.separator + "resources" + File.separator + "jms" + File.separator
-                        + "tx" + File.separator + "jmsReceiver.bal").getAbsolutePath();
+                        + "tx" + File.separator + "jmsReceiverAckCommit.bal").getAbsolutePath();
         String[] receiverArgs = { relativePath };
 
         ballerinaServer.setArguments(receiverArgs);
@@ -88,31 +98,13 @@ public class JMSPublisherTxTestCase extends IntegrationTestCase {
         // Start receiver
         ballerinaServer.startServer();
 
-        // leecher 1
-        String messageText1 = "Hello from JMS Tx 1";
+        // wait until http backend invoked and responded
+        Thread.sleep(1000);
 
-        LogLeecher leecher1 = new LogLeecher(messageText1);
-
-        ballerinaServer.addLogLeecher(leecher1);
-
-        // leecher 2
-        String messageText2 = "Hello from JMS Tx 2";
-
-        LogLeecher leecher2 = new LogLeecher(messageText2);
-
-        ballerinaServer.addLogLeecher(leecher2);
-
-        ServerInstance jmsSender = new JMSServerInstance(serverZipPath);
-        // Start sender
-        String[] senderArgs = {
-                new File("src" + File.separator + "test" + File.separator + "resources" + File.separator + "jms"
-                        + File.separator + "tx" + File.separator + "jmsSender.bal").getAbsolutePath()
-        };
-
-        jmsSender.runMain(senderArgs);
-
-        // Wait for expected text
-        leecher1.waitForText(5000);
-        leecher2.waitForText(5000);
+        // check if the original queue is empty and dead letter queue is empty
+        Assert.assertTrue(broker.checkQueueSize(queueName) && broker.checkQueueSize("ActiveMQ.DLQ"),
+                "Queue is not empty message is not committed.");
     }
 }
+
+

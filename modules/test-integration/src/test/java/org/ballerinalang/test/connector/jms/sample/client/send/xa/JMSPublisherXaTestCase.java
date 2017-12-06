@@ -16,16 +16,16 @@
 *  under the License.
 */
 
-package org.ballerinalang.test.service.jms.sample.producer.xa;
+package org.ballerinalang.test.connector.jms.sample.client.send.xa;
 
 import org.apache.activemq.broker.BrokerService;
 import org.ballerinalang.test.IntegrationTestCase;
+import org.ballerinalang.test.connector.jms.sample.JMSServerInstance;
 import org.ballerinalang.test.context.Constant;
+import org.ballerinalang.test.context.LogLeecher;
 import org.ballerinalang.test.context.ServerInstance;
-import org.ballerinalang.test.service.jms.sample.JMSServerInstance;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
@@ -33,10 +33,11 @@ import org.testng.annotations.Test;
 import java.io.File;
 
 /**
- * Testing the JMS XA publisher rollback
+ * Testing the JMS XA publisher
  */
-public class JMSPublisherXaRollbackTestCase extends IntegrationTestCase {
-    private static final Logger log = LoggerFactory.getLogger(JMSPublisherXaRollbackTestCase.class);
+public class JMSPublisherXaTestCase extends IntegrationTestCase {
+    private static final Logger log = LoggerFactory.getLogger(JMSPublisherXaTestCase.class);
+    ServerInstance ballerinaServer =  null;
     private BrokerService broker;
     private String serverZipPath;
 
@@ -54,6 +55,7 @@ public class JMSPublisherXaRollbackTestCase extends IntegrationTestCase {
         broker.start();
 
         serverZipPath = System.getProperty(Constant.SYSTEM_PROP_SERVER_ZIP);
+        ballerinaServer = new JMSServerInstance(serverZipPath, 9091);
     }
 
     /**
@@ -63,27 +65,54 @@ public class JMSPublisherXaRollbackTestCase extends IntegrationTestCase {
      */
     @AfterClass
     private void cleanup() throws Exception {
+        ballerinaServer.stopServer();
         if (broker != null) {
             broker.stop();
         }
     }
 
-    @Test(description = "Test fot JMS XA Transacted failing publisher")
-    public void testJMSSend() throws Exception {
-        log.info("JMS xa negative test start..");
+    @Test(description = "Test for JMS XA publisher",
+          enabled = true)
+    public void testJMSSendReceive() throws Exception {
+        log.info("JMS XA test start..");
+
+        //Adding temporary echo service so the server start can be monitored using that. (since this is a jms service
+        //there won't be any http port openings, hence current logic cannot identify whether server is started or not)
+        String relativePath = new File(
+                "src" + File.separator + "test" + File.separator + "resources" + File.separator + "jms" + File.separator
+                        + "xa" + File.separator + "jmsReceiver.bal").getAbsolutePath();
+        String[] receiverArgs = { relativePath };
+
+        ballerinaServer.setArguments(receiverArgs);
+
+        // Start receiver
+        ballerinaServer.startServer();
+
+        // leecher 1
+        String messageText1 = "Hello from JMS XA 1";
+
+        LogLeecher leecher1 = new LogLeecher(messageText1);
+
+        ballerinaServer.addLogLeecher(leecher1);
+
+        // leecher 2
+        String messageText2 = "Hello from JMS XA 2";
+
+        LogLeecher leecher2 = new LogLeecher(messageText2);
+
+        ballerinaServer.addLogLeecher(leecher2);
 
         ServerInstance jmsSender = new JMSServerInstance(serverZipPath);
         // Start sender
         String[] senderArgs = {
                 new File("src" + File.separator + "test" + File.separator + "resources" + File.separator + "jms"
-                        + File.separator + "xa" + File.separator + "jmsFailSender.bal").getAbsolutePath()
+                        + File.separator + "xa" + File.separator + "jmsSender.bal").getAbsolutePath()
         };
 
         jmsSender.runMain(senderArgs);
 
-        Thread.sleep(2000);
-
-        Assert.assertTrue(broker.checkQueueSize("xaQueue1") && broker.checkQueueSize("xaQueue2"),
-                "XA transaction rollback is failed");
+        // Wait for expected text
+        leecher1.waitForText(5000);
+        leecher2.waitForText(5000);
     }
 }

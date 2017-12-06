@@ -15,17 +15,17 @@
 *  specific language governing permissions and limitations
 *  under the License.
 */
-
-package org.ballerinalang.test.service.jms.sample.producer.xa;
+package org.ballerinalang.test.connector.jms.sample.client.poll;
 
 import org.apache.activemq.broker.BrokerService;
 import org.ballerinalang.test.IntegrationTestCase;
+import org.ballerinalang.test.connector.jms.sample.JMSServerInstance;
+import org.ballerinalang.test.connector.jms.sample.JMSTestUtils;
 import org.ballerinalang.test.context.Constant;
-import org.ballerinalang.test.context.LogLeecher;
 import org.ballerinalang.test.context.ServerInstance;
-import org.ballerinalang.test.service.jms.sample.JMSServerInstance;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
@@ -33,13 +33,13 @@ import org.testng.annotations.Test;
 import java.io.File;
 
 /**
- * Testing the JMS XA publisher
+ * Testing the JMS Client connector polling testcase
  */
-public class JMSPublisherXaTestCase extends IntegrationTestCase {
-    private static final Logger log = LoggerFactory.getLogger(JMSPublisherXaTestCase.class);
-    ServerInstance ballerinaServer =  null;
+public class JMSClientPollTestCase extends IntegrationTestCase {
+    private static final Logger log = LoggerFactory.getLogger(JMSClientPollTestCase.class);
     private BrokerService broker;
     private String serverZipPath;
+    private String queueName = "MyPollingQueue";
 
     /**
      * Setup an embedded activemq broker and prepare the ballerina distribution to run jms samples.
@@ -55,7 +55,6 @@ public class JMSPublisherXaTestCase extends IntegrationTestCase {
         broker.start();
 
         serverZipPath = System.getProperty(Constant.SYSTEM_PROP_SERVER_ZIP);
-        ballerinaServer = new JMSServerInstance(serverZipPath, 9091);
     }
 
     /**
@@ -65,54 +64,30 @@ public class JMSPublisherXaTestCase extends IntegrationTestCase {
      */
     @AfterClass
     private void cleanup() throws Exception {
-        ballerinaServer.stopServer();
         if (broker != null) {
             broker.stop();
         }
     }
 
-    @Test(description = "Test for JMS XA publisher",
-          enabled = true)
-    public void testJMSSendReceive() throws Exception {
-        log.info("JMS XA test start..");
+    @Test(description = "Test fot JMS Client Connector Poll")
+    public void testJMSPoll() throws Exception {
+        log.info("JMS client connector poll test start..");
 
-        //Adding temporary echo service so the server start can be monitored using that. (since this is a jms service
-        //there won't be any http port openings, hence current logic cannot identify whether server is started or not)
-        String relativePath = new File(
-                "src" + File.separator + "test" + File.separator + "resources" + File.separator + "jms" + File.separator
-                        + "xa" + File.separator + "jmsReceiver.bal").getAbsolutePath();
-        String[] receiverArgs = { relativePath };
-
-        ballerinaServer.setArguments(receiverArgs);
-
-        // Start receiver
-        ballerinaServer.startServer();
-
-        // leecher 1
-        String messageText1 = "Hello from JMS XA 1";
-
-        LogLeecher leecher1 = new LogLeecher(messageText1);
-
-        ballerinaServer.addLogLeecher(leecher1);
-
-        // leecher 2
-        String messageText2 = "Hello from JMS XA 2";
-
-        LogLeecher leecher2 = new LogLeecher(messageText2);
-
-        ballerinaServer.addLogLeecher(leecher2);
+        JMSTestUtils.publishMessagesToQueue(queueName);
+        Assert.assertTrue(!broker.checkQueueSize(queueName), "JMS Client Connector polling test preparation failed");
 
         ServerInstance jmsSender = new JMSServerInstance(serverZipPath);
+
         // Start sender
         String[] senderArgs = {
                 new File("src" + File.separator + "test" + File.separator + "resources" + File.separator + "jms"
-                        + File.separator + "xa" + File.separator + "jmsSender.bal").getAbsolutePath()
+                        + File.separator + "jmsClientPoll.bal").getAbsolutePath()
         };
 
         jmsSender.runMain(senderArgs);
 
-        // Wait for expected text
-        leecher1.waitForText(5000);
-        leecher2.waitForText(5000);
+        Thread.sleep(10000);
+
+        Assert.assertTrue(broker.checkQueueSize(queueName), "JMS Client Connector polling failed");
     }
 }

@@ -235,6 +235,13 @@ public class ServerInstance implements Server {
         } catch (InterruptedException e) {
             throw new BallerinaTestException("Error waiting for execution to finish", e);
         }
+
+        //initialize log readers
+        // todo: configured these properly so that those will run in parallel with the server and stop with the sever
+        serverInfoLogReader = new ServerLogReader("inputStream", process.getInputStream());
+        serverInfoLogReader.start();
+        serverErrorLogReader = new ServerLogReader("errorStream", process.getErrorStream());
+        serverErrorLogReader.start();
     }
 
     /**

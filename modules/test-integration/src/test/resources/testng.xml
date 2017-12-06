@@ -24,7 +24,7 @@
 
     <test name="ballerina-jms-sample-tests" parallel="false">
         <packages>
-            <package name="org.ballerinalang.test.service.jms.sample.*"/>
+            <package name="org.ballerinalang.test.connector.jms.sample.*"/>
         </packages>
     </test>
 

@@ -16,14 +16,13 @@
 *  under the License.
 */
 
-package org.ballerinalang.test.service.jms.sample.consumer.clientack;
+package org.ballerinalang.test.connector.jms.sample.server.tx;
 
-import org.apache.activemq.ActiveMQConnectionFactory;
 import org.apache.activemq.broker.BrokerService;
 import org.ballerinalang.test.IntegrationTestCase;
+import org.ballerinalang.test.connector.jms.sample.JMSServerInstance;
 import org.ballerinalang.test.context.Constant;
 import org.ballerinalang.test.context.ServerInstance;
-import org.ballerinalang.test.service.jms.sample.JMSServerInstance;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testng.Assert;
@@ -32,26 +31,19 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 import java.io.File;
-import javax.jms.ConnectionFactory;
-import javax.jms.DeliveryMode;
-import javax.jms.Destination;
-import javax.jms.JMSException;
-import javax.jms.MessageProducer;
-import javax.jms.QueueConnection;
-import javax.jms.QueueSession;
-import javax.jms.Session;
-import javax.jms.TextMessage;
+
+import static org.ballerinalang.test.connector.jms.sample.JMSTestUtils.publishMessagesToQueue;
 
 /**
- * Testing the JMS consumer.
+ * Testing the JMS consumer tx rollback
  */
-public class JMSConsumerClientAckCommitTestCase extends IntegrationTestCase {
-    private static final Logger log = LoggerFactory.getLogger(JMSConsumerClientAckCommitTestCase.class);
+public class JMSConsumerTxRollbackTestCase extends IntegrationTestCase {
+    private static final Logger log = LoggerFactory.getLogger(JMSConsumerTxRollbackTestCase.class);
     ServerInstance ballerinaServer;
     private BrokerService broker = null;
     private String serverZipPath;
 
-    private String queueName = "MyQueueAck";
+    private String queueName = "MyQueueTx";
 
     /**
      * Setup an embedded activemq broker and prepare the ballerina distribution to run jms samples.
@@ -84,7 +76,7 @@ public class JMSConsumerClientAckCommitTestCase extends IntegrationTestCase {
         }
     }
 
-    @Test(description = "Test JMS receiver client ack, success operation")
+    @Test(description = "Test JMS receiver local tx rollback operation")
     public void testJMSSendReceive() throws Exception {
         log.info("JMS test start..");
 
@@ -98,7 +90,7 @@ public class JMSConsumerClientAckCommitTestCase extends IntegrationTestCase {
         //there won't be any http port openings, hence current logic cannot identify whether server is started or not)
         String relativePath = new File(
                 "src" + File.separator + "test" + File.separator + "resources" + File.separator + "jms" + File.separator
-                        + "tx" + File.separator + "jmsReceiverAckCommit.bal").getAbsolutePath();
+                        + "tx" + File.separator + "jmsReceiverTxRollback.bal").getAbsolutePath();
         String[] receiverArgs = { relativePath };
 
         ballerinaServer.setArguments(receiverArgs);
@@ -106,35 +98,11 @@ public class JMSConsumerClientAckCommitTestCase extends IntegrationTestCase {
         // Start receiver
         ballerinaServer.startServer();
 
-        // wait until http backend invoked and responded
-        Thread.sleep(1000);
+        // wait until http backend invoked and rollbacked (few times until it moves to the dlc)
+        Thread.sleep(5000);
 
-        // check if the original queue is empty and dead letter queue is empty
-        Assert.assertTrue(broker.checkQueueSize(queueName) && broker.checkQueueSize("ActiveMQ.DLQ"),
+        // check if the message is not there in the initial queue and its there in the dead letter queue
+        Assert.assertTrue(broker.checkQueueSize(queueName) && !broker.checkQueueSize("ActiveMQ.DLQ"),
                 "Queue is not empty message is not committed.");
     }
-
-    /**
-     * To publish the messages to a queue.
-     *
-     * @throws JMSException         JMS Exception.
-     * @throws InterruptedException Interrupted exception while waiting in between messages.
-     */
-    public void publishMessagesToQueue(String queueName) throws JMSException {
-        ConnectionFactory connectionFactory = new ActiveMQConnectionFactory("tcp://localhost:61618");
-        QueueConnection queueConn = (QueueConnection) connectionFactory.createConnection();
-        queueConn.start();
-        QueueSession queueSession = queueConn.createQueueSession(false, Session.AUTO_ACKNOWLEDGE);
-        Destination destination = queueSession.createQueue(queueName);
-        MessageProducer queueSender = queueSession.createProducer(destination);
-        queueSender.setDeliveryMode(DeliveryMode.PERSISTENT);
-        String queueText = "Queue Message : " + "Bal Message";
-        TextMessage queueMessage = queueSession.createTextMessage(queueText);
-        queueSender.send(queueMessage);
-        queueConn.close();
-        queueSession.close();
-        queueSender.close();
-    }
 }
-
-

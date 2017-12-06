@@ -1,4 +1,4 @@
-package org.ballerinalang.test.service.jms.sample;
+package org.ballerinalang.test.connector.jms.sample;
 /*
 *  Copyright (c) 2017, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
 *

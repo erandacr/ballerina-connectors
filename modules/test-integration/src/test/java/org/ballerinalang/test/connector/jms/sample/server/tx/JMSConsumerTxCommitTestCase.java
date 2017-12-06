@@ -16,14 +16,13 @@
 *  under the License.
 */
 
-package org.ballerinalang.test.service.jms.sample.consumer.tx;
+package org.ballerinalang.test.connector.jms.sample.server.tx;
 
-import org.apache.activemq.ActiveMQConnectionFactory;
 import org.apache.activemq.broker.BrokerService;
 import org.ballerinalang.test.IntegrationTestCase;
+import org.ballerinalang.test.connector.jms.sample.JMSServerInstance;
 import org.ballerinalang.test.context.Constant;
 import org.ballerinalang.test.context.ServerInstance;
-import org.ballerinalang.test.service.jms.sample.JMSServerInstance;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testng.Assert;
@@ -32,15 +31,8 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 import java.io.File;
-import javax.jms.ConnectionFactory;
-import javax.jms.DeliveryMode;
-import javax.jms.Destination;
-import javax.jms.JMSException;
-import javax.jms.MessageProducer;
-import javax.jms.QueueConnection;
-import javax.jms.QueueSession;
-import javax.jms.Session;
-import javax.jms.TextMessage;
+
+import static org.ballerinalang.test.connector.jms.sample.JMSTestUtils.publishMessagesToQueue;
 
 /**
  * Testing the JMS consumer tx commit.
@@ -113,28 +105,4 @@ public class JMSConsumerTxCommitTestCase extends IntegrationTestCase {
         Assert.assertTrue(broker.checkQueueSize(queueName) && broker.checkQueueSize("ActiveMQ.DLQ"),
                 "Queue is not empty. Message is not committed.");
     }
-
-    /**
-     * To publish the messages to a queue.
-     *
-     * @throws JMSException         JMS Exception.
-     * @throws InterruptedException Interrupted exception while waiting in between messages.
-     */
-    public void publishMessagesToQueue(String queueName) throws JMSException {
-        ConnectionFactory connectionFactory = new ActiveMQConnectionFactory("tcp://localhost:61618");
-        QueueConnection queueConn = (QueueConnection) connectionFactory.createConnection();
-        queueConn.start();
-        QueueSession queueSession = queueConn.createQueueSession(false, Session.AUTO_ACKNOWLEDGE);
-        Destination destination = queueSession.createQueue(queueName);
-        MessageProducer queueSender = queueSession.createProducer(destination);
-        queueSender.setDeliveryMode(DeliveryMode.PERSISTENT);
-        String queueText = "Queue Message : " + "Bal Message";
-        TextMessage queueMessage = queueSession.createTextMessage(queueText);
-        queueSender.send(queueMessage);
-        queueConn.close();
-        queueSession.close();
-        queueSender.close();
-    }
 }
-
-
