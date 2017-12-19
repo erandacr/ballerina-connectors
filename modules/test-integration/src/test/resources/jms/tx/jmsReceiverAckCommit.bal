@@ -44,7 +44,7 @@ service<http> echo {
     }
     resource echo (http:Request req, http:Response res) {
         res.setStringPayload("hello world");
-        res.send();
+        _=res.send();
     }
 }
 
