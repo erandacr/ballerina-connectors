@@ -43,7 +43,7 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <ballerina.runtime.version>0.95.6</ballerina.runtime.version>
-        <jms.connector.version>0.95.4</jms.connector.version>
+        <jms.connector.version>0.95.5-SNAPSHOT</jms.connector.version>
         <activemq.broker.version>5.14.3</activemq.broker.version>
         <commons-net.version>3.6</commons-net.version>
     </properties>
